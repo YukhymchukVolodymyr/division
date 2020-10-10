@@ -10,8 +10,7 @@
                         <v-row>
                             <v-col col="12" md="6">
                                 <v-text-field
-                                    v-model="divisor"
-                                    :rules="rules"
+                                    v-model.number="divisor"
                                     label="Divisor"
                                     type="number"
                                     required
@@ -19,8 +18,7 @@
                             </v-col>
                             <v-col col="12" md="6">
                                 <v-text-field
-                                    v-model="denominator"
-                                    :rules="rules"
+                                    v-model.number="denominator"
                                     label="Denominator"
                                     type="number"
                                     required
@@ -28,12 +26,13 @@
                             </v-col>
                         </v-row>
                         <v-row>
-                            <v-col v-if="parseInt(divisor) && parseInt(denominator)">
+                            <v-col v-if="divisor && denominator">
                                 <div class="d-inline-flex align-start">
                                     <div class="left">
                                         <div class="divisor pl-1 pr-1">{{ divisor }}</div>
 
-                                        <division-item v-for="(item, index) in calculation" :key="index" :item="item" :component-index="index" />
+                                        <division-item v-for="(item, index) in calculation" :key="index" :item="item"
+                                                       :component-index="index"/>
 
                                     </div>
                                     <div class="right">
@@ -57,6 +56,8 @@
 <script>
 import DivisionItem from './DivisionItem'
 
+const DECIMAL_COUNT = 5
+
 export default {
     name: 'Division',
 
@@ -66,13 +67,9 @@ export default {
 
     data() {
         return {
-            divisor: '',
-            denominator: '',
-            result: '',
-            rules: [
-                v => v.length <= 10 || '\n' +
-                    'the number must be less than 10 characters',
-            ]
+            divisor: null,
+            denominator: null,
+            result: ''
         }
     },
 
@@ -83,58 +80,60 @@ export default {
     },
 
     methods: {
-        longDivision(n , d) {
-            let number = n * Math.pow(10, this.decimalCount(d)) + '',
-                denominator = d * Math.pow(10, this.decimalCount(d)),
-                reminder = 0,
+        longDivision(n, d) {
+            const multiplier = Math.pow(10, Math.max(this.getDecimalCount(n), this.getDecimalCount(d))),
+                number = Math.trunc(n * multiplier) + '',
+                denominator = Math.trunc(d * multiplier)
+
+            let reminder = 0,
                 answer = '',
                 spaces = 0,
-                calculationArray = []
+                calculationArray = [],
+                dot = false
 
-            for(let i = 0; i < number.length + 5; i++) {
-                if(number[i] === '.') {
+            for(let i = 0; i < number.length + DECIMAL_COUNT + 1; i++) {
+                const digit = i < number.length ? parseInt(number[i]) : 0
+                const divisor = digit + (reminder * 10)
+                const answerValue = Math.floor(divisor / denominator)
+                const subtractor = divisor - divisor % denominator
+                const lessZero = n < d
+                const integerEnd = number.length - 1 <= i
 
-                    answer = answer + '.'
-
-                } else {
-                    const digit = i < number.length ? parseInt(number[i]) : 0
-                    const divisor = digit + (reminder * 10)
-                    const answerValue = Math.floor(divisor / denominator)
-                    const subtractor = divisor - divisor % denominator
-
+                if(answerValue || (integerEnd && lessZero)) {
                     answer = answer + answerValue
-
-                    if(answerValue) {
-
-                        calculationArray.push({
-                            divisor: divisor,
-                            subtractor: subtractor,
-                            spaces: spaces
-                        })
-
-                        spaces += this.getSpacesValue(divisor, subtractor)
-
-                    }
-
-                    reminder = divisor % denominator
                 }
 
+                if(integerEnd && !dot) {
+                    answer += '.'
+                    dot = true
+                }
+
+                if(answerValue) {
+                    calculationArray.push({
+                        divisor: divisor,
+                        subtractor: subtractor,
+                        spaces: spaces
+                    })
+                    spaces += this.getSpacesValue(divisor, subtractor)
+                }
+
+                reminder = divisor % denominator
             }
 
-            this.result = parseFloat(answer)
+            this.result = parseFloat(answer).toFixed(5)
 
             return calculationArray
         },
 
         getSpacesValue(divisor, subtractor) {
-            if (divisor === subtractor) {
+            if(divisor === subtractor) {
                 return divisor.toString().length
             } else {
                 return divisor.toString().length - (divisor - subtractor).toString().length
             }
         },
 
-        decimalCount (value) {
+        getDecimalCount(value) {
             return value % 1 ? value.toString().split('.')[1].length : 0
         }
     }
