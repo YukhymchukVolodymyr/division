@@ -82,8 +82,8 @@ export default {
     methods: {
         longDivision(n, d) {
             const multiplier = Math.pow(10, Math.max(this.getDecimalCount(n), this.getDecimalCount(d))),
-                number = Math.trunc(n * multiplier) + '',
-                denominator = Math.trunc(d * multiplier)
+                number = Math.ceil(n * multiplier) + '',
+                denominator = Math.ceil(d * multiplier)
 
             let reminder = 0,
                 answer = '',
@@ -99,7 +99,7 @@ export default {
                 const lessZero = n < d
                 const integerEnd = number.length - 1 <= i
 
-                if(answerValue || (integerEnd && lessZero)) {
+                if(answerValue || (integerEnd || lessZero)) {
                     answer = answer + answerValue
                 }
 
@@ -126,11 +126,9 @@ export default {
         },
 
         getSpacesValue(divisor, subtractor) {
-            if(divisor === subtractor) {
-                return divisor.toString().length
-            } else {
-                return divisor.toString().length - (divisor - subtractor).toString().length
-            }
+            return divisor === subtractor
+                ? divisor.toString().length
+                : divisor.toString().length - (divisor - subtractor).toString().length
         },
 
         getDecimalCount(value) {
